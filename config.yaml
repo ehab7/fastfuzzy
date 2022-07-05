@@ -1,0 +1,20 @@
+---
+separator: "|"
+position: 1
+exclude:
+- azzuie
+reject:
+- uk
+- spain
+remove:
+- '#'
+- '@'
+- '-'
+- '/'
+- '\'
+debug: false
+algo:
+  search: beaver
+  threshold: 0.85
+  soundex: true
+  debug: false
