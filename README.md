@@ -67,7 +67,14 @@ cat testfile.csv | ./fastfuzzy -search "beaver" -include "lakes,ponds" -reject "
 ```
 
 #### Benchmarking:
-Took ~110 seconds to process ~2.5G file with ~130M rows on AMD machine 2.3Ghz.
+Took ~110 seconds to process ~2.5G file with 130M rows on AMD machine 2.3Ghz.
+
+#### How to build:
+```
+git clone https://github.com/ehab7/fastfuzzy
+cd fastfuzzy
+go build .
+```
 
 #### To-Do:
   - Adding support to rune currently it is only to English.
