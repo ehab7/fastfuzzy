@@ -1,20 +1,19 @@
 ---
-separator: "|"
+separator:
 position: 1
-exclude:
-- azzuie
-reject:
-- uk
-- spain
-remove:
-- '#'
-- '@'
-- '-'
-- '/'
-- '\'
-debug: false
-algo:
-  search: beaver
-  threshold: 0.85
-  soundex: true
-  debug: false
+debug: true
+nodes:
+  - name: macroriever 
+    parent: moonlight
+    ignore_if_has:
+      - muds
+    remove:
+      - "@" 
+      - \
+    explicit_search:
+      - "main street" 
+      - "lucky12"
+    explicit_search_combine:
+      - ["master", "node"]
+    fuzzy_search: macroriever 
+    threshold: 0.85

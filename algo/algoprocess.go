@@ -2,18 +2,16 @@ package algo
 
 import (
 	"bytes"
-	"errors"
-	"log"
 	"strings"
 )
 
-type Algo struct {
-	Search    string  `yaml:"search"`
-	Threshold float32 `yaml:"threshold"`
-	Soundex   bool    `yaml:"soundex"`
-	Debug     bool    `yaml:"debug"`
-	searchLen int
-	matrix    []int
+type AlgoUnit struct {
+	Name        string
+	FuzzySearch string
+	Threshold   float32
+	searchLen   int
+	matrix      []int
+	sound       string
 }
 
 const codeLen = 4
@@ -49,26 +47,31 @@ var codes = map[string]string{
 	"z": "2",
 }
 
-func InitAlgo(c *Algo) error {
-	if c.Search == "" {
-		log.Println("no keyword to fuzzy search bail out")
-		return errors.New("missing keyword")
-	}
+func InitAlgo(name string, fuzzySearch string, threshold float32) (c AlgoUnit) {
+	c.Name = name
+	c.FuzzySearch = fuzzySearch
+	c.Threshold = threshold
 
-	if c.Threshold == 0.0 {
-		log.Println("warning threshold less than 0.1")
-		c.Threshold = 0.5
-	}
-	c.searchLen = len(c.Search)
+	c.searchLen = len(c.FuzzySearch)
 	c.matrix = make([]int, c.searchLen)
-
-	return nil
+	c.sound = soundex(c.FuzzySearch)
+	return c
 }
 
-//  Jaro distance algorithm and allow only transposition operation
-func jaroSimilarity(str1 string, config *Algo) float32 {
+func GetMatrix(name string) []int {
+	matrix := make([]int, len(name))
+	return matrix
+}
+
+func GetSound(name string) *string {
+	sound := soundex(name)
+	return &sound
+}
+
+// Jaro distance algorithm and allow only transposition operation
+func jaroSimilarity(str1 *string, config *AlgoUnit) float32 {
 	// Get and store length of the strings
-	str1Len := len(str1)
+	str1Len := len(*str1)
 	str2Len := config.searchLen
 
 	var match int
@@ -101,7 +104,7 @@ func jaroSimilarity(str1 string, config *Algo) float32 {
 		}
 
 		for j := val1; j < val2; j++ {
-			if str1[i] == config.Search[j] && config.matrix[j] == 0 {
+			if (*str1)[i] == config.FuzzySearch[j] && config.matrix[j] == 0 {
 				str1Table[i] = 1
 				config.matrix[j] = 1
 				match++
@@ -121,7 +124,7 @@ func jaroSimilarity(str1 string, config *Algo) float32 {
 			for config.matrix[p] == 0 {
 				p++
 			}
-			if str1[i] != config.Search[p] {
+			if (*str1)[i] != config.FuzzySearch[p] {
 				t++
 			}
 			p++
@@ -136,6 +139,9 @@ func jaroSimilarity(str1 string, config *Algo) float32 {
 
 func soundex(s string) string {
 	var encoded bytes.Buffer
+	if len(s) == 0 {
+		return ""
+	}
 	encoded.WriteByte(s[0])
 
 	for i := 1; i < len(s); i++ {
@@ -174,7 +180,7 @@ func soundex(s string) string {
 }
 
 // function to apply JaroSimilarity algo the return matching status and delta from keywrod search
-func Process(sentance *string, algo *Algo) (bool, float32) {
+func ProcessSentanceFuzzy(sentance *string, algo *AlgoUnit) (bool, float32) {
 
 	g := strings.Fields(*sentance)
 	var min = algo.Threshold
@@ -182,49 +188,25 @@ func Process(sentance *string, algo *Algo) (bool, float32) {
 	var found = false
 
 	for _, item := range g {
-		if len(item) <= 3 {
-			continue
-		}
+		if len(item) > 3 {
 
-		if item == algo.Search {
-			return true, 1.01
-		}
-
-		distance := jaroSimilarity(item, algo)
-		if algo.Debug {
-			log.Printf("word:%s jaro calc:%f threshold:%f \n", item, distance, algo.Threshold)
-		}
-
-		if distance > returnValue {
-			returnValue = distance
-		}
-
-		if distance > min {
-			if algo.Soundex {
-
+			if item == algo.FuzzySearch {
+				return true, 1.0
+			}
+			distance := jaroSimilarity(&item, algo)
+			if distance > returnValue {
+				returnValue = distance
+			}
+			if false && distance >= min {
 				var itemSound = soundex(item)
-				kewordSound, ok := keyWordSounds[algo.Search]
-				if !ok {
-					kewordSound = soundex(algo.Search)
-					keyWordSounds[algo.Search] = kewordSound
-				}
-				if algo.Debug {
-					log.Printf("word:%s soundex:%s keyword:%s soundex:%s %v\n", item, itemSound, algo.Search, kewordSound, itemSound == kewordSound)
-				}
-
-				if itemSound == kewordSound {
-
+				if itemSound == algo.sound {
 					found = true
-					min = distance
 				}
-			} else {
-				found = true
-				min = distance
 			}
 		}
-
 	}
-
-	return found, returnValue
-
+	if returnValue >= min {
+		return found, returnValue
+	}
+	return found, 0.0
 }
